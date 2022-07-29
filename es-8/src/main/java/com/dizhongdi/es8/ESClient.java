@@ -1,7 +1,11 @@
 package com.dizhongdi.es8;
 
 import co.elastic.clients.elasticsearch.*;
+import co.elastic.clients.elasticsearch.core.*;
+import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
+import co.elastic.clients.elasticsearch.core.bulk.CreateOperation;
 import co.elastic.clients.elasticsearch.indices.*;
+import co.elastic.clients.elasticsearch.indices.ExistsRequest;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
@@ -19,6 +23,7 @@ import java.io.InputStream;
 import java.nio.file.*;
 import java.security.KeyStore;
 import java.security.cert.*;
+import java.util.ArrayList;
 
 /**
  * ClassName:ESClient
@@ -37,10 +42,72 @@ public class ESClient {
         //初始化链接
         initESConnection();
         //操作索引
-        operationIndex();
+        //operationIndex();
+        //Lambda
+//        initESConnectionLambda();
+
+
+        //操作文档
+        operationDocument();
+
     }
 
-    public static void operationIndex() throws Exception {
+    public static void operationDocument() throws Exception {
+        CreateRequest<User> request = new CreateRequest.Builder<User>().
+                index("dizhongdi")
+                .document(new User(1001,"zhangsan",18))
+                .id("1001")
+                .build();
+
+        //文档插入
+        CreateResponse response = client.create(request);
+        System.out.println(response.result());
+
+        //批量插入
+        ArrayList<BulkOperation> arrayList = new ArrayList<>();
+        for (Integer i = 3; i < 9; i++) {
+            CreateOperation<User> build = new CreateOperation.Builder<User>()
+                    .index("dizhongdi").
+                            document(new User(i, "asd", i)).
+                            id("100"+i.toString())
+                    .build();
+            arrayList.add(new BulkOperation.Builder().create(build).build());
+        }
+        BulkResponse bulkResponse = client.bulk(new BulkRequest.Builder().operations(arrayList).build());
+        System.out.println("数据操作成功：" + bulkResponse);
+
+        //删除文档
+        DeleteRequest deleteRequest = new DeleteRequest.Builder().index("dizhongdi").id("1001").build();
+        System.out.println(deleteRequest);
+
+        transport.close();
+    }
+
+    public static void initESConnectionLambda() throws Exception {
+        //获取索引客户端对象
+        final ElasticsearchIndicesClient indices = client.indices();
+
+        boolean flag = indices.exists(req -> req.index("dizhongdi")).value();
+        if (flag){
+            System.out.println("索引已经存在");
+        }else {
+            CreateIndexResponse response = indices.create(request -> request.index("dizhongdi"));
+            System.out.println("创建索引成功: "+response);
+        }
+
+        //查询索引
+        GetIndexResponse getIndexResponse = indices.get(getIndexRequest -> getIndexRequest.index("dizhongdi"));
+        System.out.println("索引查询成功：" +getIndexResponse.result());
+
+        // 删除索引
+        DeleteIndexResponse deleteIndexResponse = indices.delete(deleteIndexRequest -> deleteIndexRequest.index("dizhongdi"));
+        System.out.println("删除索引成功：" + deleteIndexResponse.acknowledged());
+        transport.close();
+    }
+
+
+
+        public static void operationIndex() throws Exception {
         //获取索引客户端对象
         final ElasticsearchIndicesClient indices = client.indices();
         ExistsRequest existsRequest = new ExistsRequest.Builder().index("dizhongdi").build();
@@ -63,7 +130,7 @@ public class ESClient {
         DeleteIndexRequest deleteIndexRequest = new DeleteIndexRequest.Builder().index("dizhongdi").build();
         DeleteIndexResponse deleteIndexResponse = indices.delete(deleteIndexRequest);
         System.out.println("删除索引成功：" + deleteIndexResponse.acknowledged());
-
+        transport.close();
     }
 
 
