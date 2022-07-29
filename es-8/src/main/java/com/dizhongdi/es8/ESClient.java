@@ -23,6 +23,7 @@ import org.apache.http.ssl.*;
 import org.elasticsearch.client.*;
 
 import javax.net.ssl.SSLContext;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.*;
 import java.security.KeyStore;
@@ -39,7 +40,7 @@ import java.util.ArrayList;
  */
 public class ESClient {
     public static ElasticsearchTransport transport;
-//    public static ElasticsearchAsyncClient asyncClient;
+    public static ElasticsearchAsyncClient asyncClient;
     public static ElasticsearchClient client;
 
     public static void main(String[] args) throws Exception {
@@ -57,11 +58,33 @@ public class ESClient {
 
         //查询文档
 //        queryDocument();
-        queryDocumentLambda();
+//        queryDocumentLambda();
 
+        //异步操作
+        asyncClientOperation();
 
     }
 
+    public static void asyncClientOperation() throws Exception {
+        asyncClient.indices().create(req -> req.index("newindex3")).
+                thenApply(
+                        resp -> resp.acknowledged()
+                ).
+                whenComplete(
+                        (resp,error) ->{
+                            System.out.println("回调方法");
+                            if (resp!=null){
+                                System.out.println(resp);
+                            }
+                            try {
+                                transport.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                );
+        System.out.println("主线程..");
+    }
 
 
 
@@ -212,7 +235,7 @@ public class ESClient {
         //同步
         client = new ElasticsearchClient(transport);
         //异步
-//        asyncClient = new ElasticsearchAsyncClient(transport);
+        asyncClient = new ElasticsearchAsyncClient(transport);
 //        transport.close();
     }
 
