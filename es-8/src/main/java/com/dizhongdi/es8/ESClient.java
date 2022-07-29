@@ -1,14 +1,18 @@
 package com.dizhongdi.es8;
 
 import co.elastic.clients.elasticsearch.*;
+import co.elastic.clients.elasticsearch._types.query_dsl.MatchQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch.core.*;
 import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
 import co.elastic.clients.elasticsearch.core.bulk.CreateOperation;
 import co.elastic.clients.elasticsearch.indices.*;
 import co.elastic.clients.elasticsearch.indices.ExistsRequest;
+import co.elastic.clients.elasticsearch.sql.QueryRequest;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
+import co.elastic.clients.util.ObjectBuilder;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.*;
 import org.apache.http.client.*;
@@ -48,8 +52,47 @@ public class ESClient {
 
 
         //操作文档
-        operationDocument();
+//        operationDocument();
+//        operationDocumentLambda();
 
+        //查询文档
+//        queryDocument();
+        queryDocumentLambda();
+
+
+    }
+
+
+
+
+    public static void queryDocumentLambda() throws Exception {
+        client.search(
+                req -> {
+                    req.query(
+                            q ->
+                                    q.match(
+                                            m -> m.field("age").query("18")
+                                    )
+                    );
+                    return req;
+                }
+                , Object.class
+        ).hits();
+        transport.close();
+    }
+
+    public static void queryDocument() throws Exception {
+        Query query = new Query.Builder().match(new MatchQuery.Builder().field("age").query(18).build()).build();
+        SearchResponse response = client.search(new SearchRequest.Builder().index("dizhongdi").query(query).build(),Object.class);
+        System.out.println(response);
+        transport.close();
+    }
+
+        //文档操作
+    public static void operationDocumentLambda() throws Exception {
+//        CreateResponse response = client.create(req -> req.index("dizhongdi").
+//                document(new User(1002,"zhangsan",18)).id("1002").build());
+//        System.out.println(response);
     }
 
     public static void operationDocument() throws Exception {
